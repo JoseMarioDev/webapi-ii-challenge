@@ -28,34 +28,27 @@ router.post('/', (req, res) => {
 // _______________________________________________________________________________
 
 router.post('/:id/comments', (req, res) => {
-  const postId = req.params.id;
-  const { text } = req.body;
-  posts
-    .findById(postId)
-    .first()
-    .then(post => {
-      if (!post) {
-        return res
-          .status(404)
-          .json({ message: 'The post with the specified ID does not exist.' });
-      } else {
-        if (!text) {
-          res
-            .status(400)
-            .json({ errorMessage: 'Please provide text for the comment.' });
+  const commentInfo = req.body;
+  commentInfo.post_id = req.params.id;
+  if (commentInfo.text) {
+    Posts.insertComment(commentInfo)
+      .then(comment => {
+        if (comment) {
+          res.status(201).json(commentInfo);
         } else {
-          posts.insertComment(req.body);
-          return then(comment => {
-            res.status(201).json(comment);
+          res.status(500).json({
+            message: 'There was an error saving the comment to the database',
           });
         }
-      }
-    })
-    .catch(err => {
-      res
-        .status(500)
-        .json({ error: 'The post information could not be retrieved.' });
-    });
+      })
+      .catch(error => {
+        res
+          .status(404)
+          .json({ message: 'The post with the specified ID does not exist' });
+      });
+  } else {
+    res.status(400).json({ message: 'Please provide text for the comment' });
+  }
 });
 
 // _______________________________________________________________________________
@@ -76,8 +69,7 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const postId = req.params.id;
-  posts
-    .findById(postId)
+  Posts.findById(postId)
     .first()
     .then(post => {
       if (!post) {
@@ -99,15 +91,14 @@ router.get('/:id', (req, res) => {
 
 router.get('/:id/comments', (req, res) => {
   const postId = req.params.id;
-  posts
-    .findPostComments(postId)
+  Posts.findPostComments(postId)
     .then(post => {
-      if (postId > post) {
-        return res
-          .status(404)
-          .json({ message: 'The post with the specified ID does not exist.' });
+      if (post.length > 0) {
+        return res.status(200).json(post);
       } else {
-        res.status(200).json(post);
+        res
+          .status(404)
+          .json({ message: 'the post w/the specified ID does not exist' });
       }
     })
     .catch(err => {
@@ -121,8 +112,7 @@ router.get('/:id/comments', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const postId = req.params.id;
-  posts
-    .remove(postId)
+  Posts.remove(postId)
     .then(post => {
       if (!post) {
         res
@@ -143,9 +133,7 @@ router.put('/:id', (req, res) => {
   const postId = req.params.id;
   const updatedPost = req.body;
   const { title, contents } = updatedPost;
-
-  posts
-    .update(postId, updatedPost)
+  Posts.update(postId, updatedPost)
     .then(updated => {
       if (!updated) {
         res.status(404).json({
